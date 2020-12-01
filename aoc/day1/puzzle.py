@@ -1,4 +1,5 @@
 from functools import reduce
+from operator import mul
 from typing import List, Set, Optional
 from pathlib import Path
 
@@ -9,31 +10,34 @@ def parse_input() -> List[int]:
 
 
 def find_sum_components(
-    entries: List[int], length: int, target: int, components: Optional[List[int]] = None
+    values: List[int], count: int, target: int, components: Optional[List[int]] = None
 ) -> List[int]:
+    """Returns N values which sum to the given target value"""
 
     if components is None:
         components = []
 
-    if sum(components) > target or len(components) > length:
+    if sum(components) > target or len(components) > count:
         return []
-    elif sum(components) == target and len(components) == length:
+    elif sum(components) == target and len(components) == count:
         return components
 
-    for entry in entries:
-        valid_path = find_sum_components(entries, length, target, components + [entry])
-        if valid_path:
-            return valid_path
+    for value in values:
+        sum_components = find_sum_components(
+            values, count, target, components + [value]
+        )
+        if sum_components:
+            return sum_components
 
     return []
 
 
 if __name__ == "__main__":
 
-    entries = parse_input()
+    values = parse_input()
 
     # First part
-    assert reduce(lambda x, y: x * y, find_sum_components(entries, 2, 2020)) == 440979
+    assert reduce(mul, find_sum_components(values, 2, 2020)) == 440979
 
     # Second part
-    assert reduce(lambda x, y: x * y, find_sum_components(entries, 3, 2020)) == 82498112
+    assert reduce(mul, find_sum_components(values, 3, 2020)) == 82498112

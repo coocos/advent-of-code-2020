@@ -25,7 +25,7 @@ def parse_input() -> List[Tuple[Policy, str]]:
     return passwords
 
 
-def first_policy(policy: Policy, password: str) -> int:
+def first_policy(policy: Policy, password: str) -> bool:
     letters = Counter(password)
     return (
         policy.letter in letters and policy.low <= letters[policy.letter] <= policy.high

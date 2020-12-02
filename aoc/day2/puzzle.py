@@ -1,3 +1,4 @@
+import re
 from typing import List, Tuple, Counter
 from collections import namedtuple, Counter
 from pathlib import Path
@@ -12,16 +13,16 @@ def parse_input() -> List[Tuple[Policy, str]]:
         lines = [line.strip() for line in f.readlines()]
 
     passwords = []
+    pattern = r"(?P<low>\d+)-(?P<high>\d+) (?P<letter>\w): (?P<password>\w+)"
     for line in lines:
-        policy, password = line.split(": ")
-        passwords.append((parse_policy(policy), password))
+        match = re.match(pattern, line)
+        if not match:
+            raise RuntimeError(f"Failed to parse {line}")
+        policy = Policy(
+            int(match.group("low")), int(match.group("high")), match.group("letter")
+        )
+        passwords.append((policy, match.group("password")))
     return passwords
-
-
-def parse_policy(policy: str) -> Policy:
-    limits, letter = policy.split(" ")
-    low, high = map(int, limits.split("-"))
-    return Policy(low, high, letter)
 
 
 def first_policy(policy: Policy, password: str) -> int:

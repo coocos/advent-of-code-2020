@@ -42,16 +42,14 @@ if __name__ == "__main__":
     # First and second part combined
     passports_with_required_fields = 0
     passports_with_valid_fields = 0
+
     for passport in passports:
-        required_fields = True
-        valid_fields = True
-        for field, rule in rules.items():
-            if field not in passport.keys():
-                required_fields = False
-                valid_fields = False
-                break
-            elif not rule(passport[field]):
-                valid_fields = False
+
+        required_fields = all(field in passport for field in rules)
+        valid_fields = required_fields and all(
+            rule(passport.get(field, "")) for field, rule in rules.items()
+        )
+
         passports_with_required_fields += int(required_fields)
         passports_with_valid_fields += int(valid_fields)
 

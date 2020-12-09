@@ -19,13 +19,17 @@ def first_invalid_number(numbers: List[int]) -> int:
     raise RuntimeError("No invalid number found")
 
 
-def encryption_weakness(numbers: List[int], invalid_number: int) -> int:
+def encryption_weakness(numbers: List[int], target_sum: int) -> int:
 
-    for head in range(len(numbers)):
-        for tail in range(head + 2, len(numbers)):
-            number_range = numbers[head:tail]
-            if sum(number_range) == invalid_number:
-                return min(number_range) + max(number_range)
+    for window_size in range(2, len(numbers)):
+        window = sum(numbers[:window_size])
+        for head in range(window_size, len(numbers)):
+            if window == target_sum:
+                numbers_in_window = numbers[head - window_size : head]
+                return min(numbers_in_window) + max(numbers_in_window)
+            entering = numbers[head]
+            leaving = numbers[head - window_size]
+            window += entering - leaving
 
     raise RuntimeError("No encryption weakness found")
 

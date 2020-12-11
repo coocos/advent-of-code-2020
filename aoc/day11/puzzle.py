@@ -1,109 +1,104 @@
+from itertools import chain
 from copy import deepcopy
-from typing import List, Tuple, Iterable
+from typing import List, Tuple, Iterable, Dict, Literal
 from pathlib import Path
 
-Grid = List[List[str]]
 
-
-def parse_input() -> Grid:
+def parse_input() -> List[List[str]]:
     with open(Path(__file__).parent / "input.txt") as f:
         return [list(line.strip()) for line in f]
 
 
-surrounding = [(-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0)]
+directions = [(-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0)]
 
 
-def adjacent_neighbours(x: int, y: int, grid: Grid) -> int:
+def adjacent_seats(x: int, y: int, grid: List[List[str]]) -> List[Tuple[int, int]]:
 
-    occupied = 0
-    height = len(grid)
-    width = len(grid[0])
-    for dx, dy in surrounding:
-        nx = x + dx
-        ny = y + dy
-        if 0 <= nx < width and 0 <= ny < height and grid[ny][nx] == "#":
-            occupied += 1
-    return occupied
+    seats = []
+    for dx, dy in directions:
+        pos_x = x + dx
+        pos_y = y + dy
+        if (
+            0 <= pos_x < len(grid[0])
+            and 0 <= pos_y < len(grid)
+            and grid[pos_y][pos_x] == "L"
+        ):
+            seats.append((pos_x, pos_y))
+    return seats
 
 
-def visible_neighbours(x: int, y: int, grid: Grid) -> int:
+def visible_seats(x: int, y: int, grid: List[List[str]]) -> List[Tuple[int, int]]:
 
-    occupied = 0
-    height = len(grid)
-    width = len(grid[0])
-    for dx, dy in surrounding:
+    seats = []
+    for dx, dy in directions:
         pos_x = x
         pos_y = y
         while True:
             pos_x += dx
             pos_y += dy
-            if 0 <= pos_x < width and 0 <= pos_y < height:
-                if grid[pos_y][pos_x] == "#":
+            if pos_x < 0 or pos_x >= len(grid[0]) or pos_y < 0 or pos_y >= len(grid):
+                break
+            if grid[pos_y][pos_x] == "L":
+                seats.append((pos_x, pos_y))
+                break
+    return seats
+
+
+def seat_graph(grid: List[List[str]]) -> Dict:
+
+    graph = {}
+    for y in range(len(grid)):
+        for x in range(len(grid[0])):
+            if grid[y][x] == "L":
+                graph[(x, y)] = {
+                    "adjacent": adjacent_seats(x, y, grid),
+                    "visible": visible_seats(x, y, grid),
+                }
+    return graph
+
+
+def step(
+    graph: Dict, generation: Dict, preference: Literal["visible", "adjacent"]
+) -> Dict:
+
+    next_generation = generation.copy()
+    for seat in generation:
+        if generation[seat] == "L":
+            occupied = 0
+            for neighbour in graph[seat][preference]:
+                if generation[neighbour] == "#":
                     occupied += 1
                     break
-                elif grid[pos_y][pos_x] == "L":
-                    break
-            else:
-                break
-    return occupied
+            if not occupied:
+                next_generation[seat] = "#"
+        else:
+            occupied = 0
+            for neighbour in graph[seat][preference]:
+                if generation[neighbour] == "#":
+                    occupied += 1
+                    if occupied >= (4 if preference == "adjacent" else 5):
+                        next_generation[seat] = "L"
+                        break
+    return next_generation
 
 
-def simulate_adjacent(original: Grid) -> Grid:
+def simulate(
+    graph: Dict, generation: Dict, preference: Literal["adjacent", "visible"]
+) -> int:
 
-    grid = deepcopy(original)
-    for y in range(len(grid)):
-        for x in range(len(grid[0])):
-            seat = original[y][x]
-            if seat == "L" and adjacent_neighbours(x, y, original) == 0:
-                grid[y][x] = "#"
-            elif seat == "#" and adjacent_neighbours(x, y, original) >= 4:
-                grid[y][x] = "L"
-    return grid
-
-
-def simulate_visible(original: Grid) -> Grid:
-
-    grid = deepcopy(original)
-    for y in range(len(grid)):
-        for x in range(len(grid[0])):
-            seat = original[y][x]
-            if seat == "L" and visible_neighbours(x, y, original) == 0:
-                grid[y][x] = "#"
-            elif seat == "#" and visible_neighbours(x, y, original) >= 5:
-                grid[y][x] = "L"
-    return grid
-
-
-def count_seats(grid: Grid) -> int:
-
-    occupied = 0
-    for y in range(len(grid)):
-        for x in range(len(grid[0])):
-            if grid[y][x] == "#":
-                occupied += 1
-    return occupied
+    generation = generation.copy()
+    while (next_generation := step(graph, generation, preference)) != generation:
+        generation = next_generation
+    return len([seat for seat in generation.values() if seat == "#"])
 
 
 if __name__ == "__main__":
 
-    original = parse_input()
+    graph = seat_graph(parse_input())
+    first_generation = {position: "L" for position in graph}
 
     # First part
-    grid = deepcopy(original)
-    while True:
-        new_grid = simulate_adjacent(grid)
-        if str(new_grid) == str(grid):
-            break
-        grid = new_grid
-
-    assert count_seats(grid) == 2483
+    assert simulate(graph, first_generation, "adjacent") == 2483
 
     # Second part
-    grid = deepcopy(original)
-    while True:
-        new_grid = simulate_visible(grid)
-        if str(new_grid) == str(grid):
-            break
-        grid = new_grid
-
-    assert count_seats(grid) == 2285
+    assert simulate(graph, first_generation, "visible") == 2285

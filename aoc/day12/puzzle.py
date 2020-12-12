@@ -11,44 +11,32 @@ def navigate(
     instructions: List[Tuple[str, int]], mode: Literal["normal", "waypoint"]
 ) -> int:
 
-    position = [0, 0]
-    direction = [1, 0] if mode == "normal" else [10, -1]
+    ship = [0, 0]
+    velocity = [1, 0] if mode == "normal" else [10, -1]
+    movement_target = ship if mode == "normal" else velocity
 
     for action, value in instructions:
-
         if action == "N":
-            if mode == "normal":
-                position[1] -= value
-            else:
-                direction[1] -= value
+            movement_target[1] -= value
         elif action == "S":
-            if mode == "normal":
-                position[1] += value
-            else:
-                direction[1] += value
+            movement_target[1] += value
         elif action == "E":
-            if mode == "normal":
-                position[0] += value
-            else:
-                direction[0] += value
+            movement_target[0] += value
         elif action == "W":
-            if mode == "normal":
-                position[0] -= value
-            else:
-                direction[0] -= value
+            movement_target[0] -= value
         elif action == "F":
-            position[0] += direction[0] * value
-            position[1] += direction[1] * value
+            ship[0] += velocity[0] * value
+            ship[1] += velocity[1] * value
         elif action == "L":
             for _ in range(value // 90):
-                direction[0], direction[1] = direction[1], -direction[0]
+                velocity[0], velocity[1] = velocity[1], -velocity[0]
         elif action == "R":
             for _ in range(value // 90):
-                direction[0], direction[1] = -direction[1], direction[0]
+                velocity[0], velocity[1] = -velocity[1], velocity[0]
         else:
             raise RuntimeError(f"Unknown action {action}")
 
-    return abs(0 + position[0]) + abs(0 + position[1])
+    return abs(ship[0]) + abs(ship[1])
 
 
 if __name__ == "__main__":

@@ -1,4 +1,6 @@
 import sys
+import math
+from functools import reduce
 from typing import Tuple, List
 from pathlib import Path
 
@@ -31,16 +33,33 @@ def earliest_bus(time: int, buses: List[str]) -> int:
     return (best_time - time) * best_bus
 
 
-def all_depart_at_offsets(buses: List[str]) -> int:
+def least_common_multiple(numbers: List[int]) -> int:
 
-    bus_offsets = {bus: i for i, bus in enumerate(buses) if bus != "x"}
-    equations = [f"(x + {offset}) mod {bus} = 0" for bus, offset in bus_offsets.items()]
+    return reduce(lambda a, b: a * b // math.gcd(a, b), numbers)
 
-    # TODO: Write a proper solution instead of generating a set of equations and using Wolfram Alpha
-    print("Plug this into Wolfram Alpha:")
-    print(f"solve {'; '.join(equations)};")
 
-    return 408270049879073
+def synced_buses(buses: List[str]) -> int:
+
+    bus_offsets = [(int(bus), i) for i, bus in enumerate(buses) if bus != "x"]
+
+    time = 0
+    step = bus_offsets[0][0]
+    locked = 1
+
+    while True:
+        synced = 0
+        for bus, offset in bus_offsets:
+            if (time + offset) % bus != 0:
+                break
+            synced += 1
+        if synced > locked:
+            step = least_common_multiple([bus[0] for bus in bus_offsets][:synced])
+            locked = synced
+        if locked == len(bus_offsets):
+            break
+        time += step
+
+    return time
 
 
 if __name__ == "__main__":
@@ -51,4 +70,4 @@ if __name__ == "__main__":
     assert earliest_bus(time, buses) == 222
 
     # Second part
-    assert all_depart_at_offsets(buses) == 408270049879073
+    assert synced_buses(buses) == 408270049879073

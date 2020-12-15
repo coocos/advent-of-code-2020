@@ -1,4 +1,5 @@
-from collections import defaultdict
+import collections
+from time import time
 from typing import List
 from pathlib import Path
 
@@ -10,31 +11,21 @@ def parse_input() -> List[int]:
 
 def play_until(values: List[int], n: int) -> int:
 
-    turns = {}
-    spoken = defaultdict(list)
+    spoken = collections.defaultdict(list)
 
-    # Initialize with starting numbers
     for i, value in enumerate(values):
         turn = i + 1
-        turns[turn] = value
         spoken[value].append(turn)
     turn = len(values) + 1
+    prev = value
 
-    # Brute force it
     while turn <= n:
-        if turn % 100000 == 0:
-            print(f"{n - turn} turns left")
-        previous = turns[turn - 1]
-        if len(spoken[previous]) == 1:
-            turns[turn] = 0
-            spoken[0].append(turn)
-        else:
-            new_value = spoken[previous][-1] - spoken[previous][-2]
-            turns[turn] = new_value
-            spoken[new_value].append(turn)
+        value = 0 if len(spoken[prev]) == 1 else spoken[prev][-1] - spoken[prev][-2]
+        spoken[value].append(turn)
+        prev = value
         turn += 1
 
-    return turns[turn - 1]
+    return prev
 
 
 if __name__ == "__main__":
@@ -45,4 +36,4 @@ if __name__ == "__main__":
     assert play_until(values, 2020) == 758
 
     # Second part
-    assert play_until(values, 30000000) == 814
+    assert play_until(values, 30_000_000) == 814

@@ -8,7 +8,7 @@ def parse_input() -> List[List[str]]:
         return [line.strip().split(" = ") for line in f.readlines()]
 
 
-def execute_decoder_v1(instructions: List[List[str]]):
+def execute_decoder_v1(instructions: List[List[str]]) -> int:
 
     memory = {}
 
@@ -40,7 +40,7 @@ def addresses(unapplied: List[str], applied: List[str] = None) -> Iterable[int]:
         yield from addresses(rest, applied + [bit])
 
 
-def execute_decoder_v2(instructions: List[List[str]]):
+def execute_decoder_v2(instructions: List[List[str]]) -> int:
 
     memory = {}
 

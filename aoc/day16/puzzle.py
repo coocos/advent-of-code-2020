@@ -1,104 +1,100 @@
 import re
 import collections
-from typing import Tuple, Dict, List
+from operator import mul
+from functools import reduce
+from itertools import chain
+from typing import Tuple, Dict, List, Set
 from pathlib import Path
 
 
-def parse_input() -> Tuple[List, Dict]:
+def parse_input() -> Tuple[List[List[int]], Dict[str, Set[int]]]:
 
     with open(Path(__file__).parent / "input.txt") as f:
         lines = [line.strip() for line in f.readlines()]
 
-    rules = {}
+    fields = {}
     tickets = []
 
-    rule_pattern = r"(.+): (\d+)-(\d+) or (\d+)-(\d+)"
+    field_pattern = r"(.+): (\d+)-(\d+) or (\d+)-(\d+)"
     ticket_pattern = r"\d,?"
 
     for line in lines:
-        if match := re.match(rule_pattern, line):
+        if match := re.match(field_pattern, line):
             name = match.group(1)
             first = (int(match.group(2)), int(match.group(3)))
             second = (int(match.group(4)), int(match.group(5)))
-            rules[name] = set(range(first[0], first[1] + 1)) | set(range(second[0], second[1] + 1))
+            fields[name] = set(range(first[0], first[1] + 1)) | set(
+                range(second[0], second[1] + 1)
+            )
         elif re.match(ticket_pattern, line):
             tickets.append([int(value) for value in line.split(",")])
 
-    return tickets, rules
+    return tickets, fields
 
 
-def ticket_scanning_error_rate(tickets, rules) -> int:
+def ticket_scanning_error_rate(
+    tickets: List[List[int]], fields: Dict[str, Set[int]]
+) -> int:
 
-    valid_values = set()
-    for rule_values in rules.values():
-        valid_values.update(rule_values)
-
-    error_rate = 0
-    for ticket in tickets:
-        for value in ticket:
-            if value not in valid_values:
-                error_rate += value
-    return error_rate
+    valid_values = set(chain(*fields.values()))
+    ticket_values = chain(*tickets)
+    return sum(value for value in ticket_values if value not in valid_values)
 
 
-def valid_tickets_only(tickets, rules) -> List:
+def valid_tickets_only(
+    tickets: List[List[int]], fields: Dict[str, Set[int]]
+) -> List[List[int]]:
 
-    valid_values = set()
-    for rule_values in rules.values():
-        valid_values.update(rule_values)
-
-    valid_tickets = []
-    for ticket in tickets:
-        if all(value in valid_values for value in ticket):
-            valid_tickets.append(ticket)
-    return valid_tickets
+    valid_values = set(chain(*fields.values()))
+    return [ticket for ticket in tickets if set(ticket) < valid_values]
 
 
-def possible_rules(tickets, rules):
+def possible_field_positions(
+    tickets: List[List[int]], fields: Dict[str, Set[int]]
+) -> Dict[int, Set[str]]:
 
-    possible = collections.defaultdict(set)
-    for position in range(len(tickets[0])):
-        for rule in rules:
-            possible[position].add(rule)
+    possible_fields = {
+        position: set(fields.keys()) for position in range(len(tickets[0]))
+    }
 
     for ticket in tickets:
         for position, value in enumerate(ticket):
-            for rule, allowed_values in rules.items():
-                if value not in allowed_values:
-                    if rule in possible[position]:
-                        possible[position].remove(rule)
+            for field, valid_values in fields.items():
+                if value not in valid_values:
+                    if field in possible_fields[position]:
+                        possible_fields[position].remove(field)
 
-    return possible
+    return possible_fields
 
 
-def find_rule_order(possible) -> List[str]:
+def find_field_order(possible_fields: Dict[int, Set[str]]) -> List[str]:
 
-    order = ["" for _ in possible]
-    while possible:
-        for position, rules in possible.items():
-            if len(rules) == 1:
-                order[position] = rules.pop()
+    order = ["" for _ in possible_fields]
+    while possible_fields:
+        for position, fields in possible_fields.items():
+            if len(fields) == 1:
+                order[position] = fields.pop()
+                del possible_fields[position]
                 break
-        del possible[position]
-        for rules in possible.values():
-            if order[position] in rules:
-                rules.remove(order[position])
+        for fields in possible_fields.values():
+            if order[position] in fields:
+                fields.remove(order[position])
+
     return order
+
 
 if __name__ == "__main__":
 
     # First part
-    tickets, rules = parse_input()
+    tickets, fields = parse_input()
     my_ticket, *other_tickets = tickets
-
-    assert ticket_scanning_error_rate(tickets, rules) == 28884
+    assert ticket_scanning_error_rate(tickets, fields) == 28884
 
     # Second part
-    valid_tickets = valid_tickets_only(other_tickets, rules)
-    possible = possible_rules(valid_tickets, rules)
-    rule_order = find_rule_order(possible)
-    product = 1
-    for position, rule in enumerate(rule_order):
-        if rule.startswith("departure"):
-            product *= my_ticket[position]
-    assert product == 1001849322119
+    valid_tickets = valid_tickets_only(other_tickets, fields)
+    possible_fields = possible_field_positions(valid_tickets, fields)
+    departure_fields = []
+    for position, field in enumerate(find_field_order(possible_fields)):
+        if field.startswith("departure"):
+            departure_fields.append(my_ticket[position])
+    assert reduce(mul, departure_fields) == 1001849322119

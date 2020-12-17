@@ -6,19 +6,20 @@ def parse_input() -> Dict[Tuple, str]:
     with open(Path(__file__).parent / "input.txt") as f:
         lines = [line.strip() for line in f.readlines()]
 
-    hypercubes: Dict[Tuple, str] = {}
+    hypergrid: Dict[Tuple, str] = {}
     for y in range(len(lines)):
         for x in range(len(lines[0])):
-            hypercubes[(x, y, 0, 0)] = lines[y][x]
-    return hypercubes
+            hypergrid[(x, y, 0, 0)] = lines[y][x]
+    return hypergrid
 
 
 def neighbours(cube: Tuple) -> Iterable[Tuple]:
 
+    dimensions = len(cube)
     for dx in (-1, 1, 0):
         for dy in (-1, 1, 0):
             for dz in (-1, 1, 0):
-                if len(cube) == 3:
+                if dimensions == 3:
                     x, y, z = cube
                     neighbour = (x + dx, y + dy, z + dz)
                     if neighbour != cube:
@@ -33,54 +34,47 @@ def neighbours(cube: Tuple) -> Iterable[Tuple]:
 
 def step(cubes: Dict[Tuple, str]) -> Dict[Tuple, str]:
 
-    expanded = cubes.copy()
-
+    grid = cubes.copy()
     for cube in cubes:
         for neighbour in neighbours(cube):
-            if neighbour not in expanded:
-                expanded[neighbour] = "."
+            if neighbour not in grid:
+                grid[neighbour] = "."
 
-    expanded_copy = expanded.copy()
-    for cube, state in expanded.items():
+    next_grid = grid.copy()
+    for cube, state in grid.items():
         active_neighbours = 0
         for neighbour in neighbours(cube):
-            if neighbour in expanded and expanded[neighbour] == "#":
+            if neighbour in grid and grid[neighbour] == "#":
                 active_neighbours += 1
+            if active_neighbours > 3:
+                break
         if state == "#":
-            if active_neighbours in (2, 3):
-                expanded_copy[cube] = "#"
-            else:
-                expanded_copy[cube] = "."
-        else:
-            if active_neighbours == 3:
-                expanded_copy[cube] = "#"
+            next_grid[cube] = "#" if active_neighbours in (2, 3) else "."
+        elif active_neighbours == 3:
+            next_grid[cube] = "#"
 
-    return expanded_copy
+    return next_grid
 
 
-def active_cubes(cubes: Dict[Tuple, str]) -> int:
+def active_cubes(grid: Dict[Tuple, str]) -> int:
 
-    return len([cube for cube in cubes.values() if cube == "#"])
+    return len([cube for cube in grid.values() if cube == "#"])
+
+
+def run_cycles(grid: Dict[Tuple, str], cycles: int) -> Dict[Tuple, str]:
+
+    for _ in range(cycles):
+        grid = step(grid)
+    return grid
 
 
 if __name__ == "__main__":
 
-    first_gen = parse_input()
+    hypergrid = parse_input()
+    grid = {cube[:3]: value for cube, value in hypergrid.items()}
 
-    simpler_first_gen = {cube[:3]: value for cube, value in first_gen.items()}
     # First part
-    cycle = 1
-    next_gen = simpler_first_gen
-    while cycle <= 6:
-        next_gen = step(next_gen)
-        cycle += 1
-    assert active_cubes(next_gen) == 237
-
+    assert active_cubes(run_cycles(grid, cycles=6)) == 237
 
     # Second part
-    cycle = 1
-    next_gen = first_gen
-    while cycle <= 6:
-        next_gen = step(next_gen)
-        cycle += 1
-    assert active_cubes(next_gen) == 2448
+    assert active_cubes(run_cycles(hypergrid, cycles=6)) == 2448

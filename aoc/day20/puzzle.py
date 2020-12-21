@@ -1,5 +1,6 @@
 import re
 import math
+from itertools import chain
 from operator import mul
 from functools import reduce
 from typing import Dict, List, Iterable, Set, Optional
@@ -27,13 +28,6 @@ def parse_input() -> Dict[int, Tile]:
     return tiles
 
 
-def draw(tile: List[List[str]]) -> None:
-
-    for row in tile:
-        print("".join(row))
-    print("")
-
-
 def generate_rotations(tile: Tile) -> Iterable[Tile]:
 
     size = len(tile)
@@ -59,7 +53,7 @@ def generate_variations(tile: Tile) -> List[Tile]:
     variations = []
     for variant in [original, horizontal, vertical]:
         for rotation in generate_rotations(variant):
-            # FIXME: You shouldn't generate the same rotation to start with
+            # FIXME: You shouldn't generate a duplicate rotation to start with
             if rotation not in variations:
                 variations.append(rotation)
     return variations
@@ -124,15 +118,78 @@ def corners_from_arrangement(
     return corner_tiles
 
 
+def create_monster_map(tiles: List[Tile]) -> Tile:
+
+    without_edges: List[Tile] = []
+    for tile in tiles:
+        without_edges.append([row[1:-1] for row in tile[1:-1]])
+
+    size = int(math.sqrt(len(tiles)))
+
+    monster_map = []
+    while without_edges:
+        row_of_tiles = without_edges[:size]
+        for i in range(len(without_edges[0])):
+            row = []
+            for tile in row_of_tiles:
+                row.extend(tile[i])
+            monster_map.append(row)
+        without_edges = without_edges[size:]
+
+    return monster_map
+
+
+def is_monster(x: int, y: int, tile: Tile) -> bool:
+
+    coords = [
+        (x, y + 1),
+        (x + 1, y + 2),
+        (x + 4, y + 2),
+        (x + 5, y + 1),
+        (x + 6, y + 1),
+        (x + 7, y + 2),
+        (x + 10, y + 2),
+        (x + 11, y + 1),
+        (x + 12, y + 1),
+        (x + 13, y + 2),
+        (x + 16, y + 2),
+        (x + 17, y + 1),
+        (x + 18, y + 1),
+        (x + 18, y),
+        (x + 19, y + 1),
+    ]
+
+    try:
+        return all(tile[coord[1]][coord[0]] == "#" for coord in coords)
+    except IndexError:
+        return False
+
+
+def water_roughness(tiles: List[Tile]) -> int:
+
+    monsters = 0
+    monster_map = create_monster_map(tiles)
+    for variation in generate_variations(monster_map):
+        for y in range(len(variation)):
+            for x in range(len(variation)):
+                if is_monster(x, y, variation):
+                    monsters += 1
+
+    cells = len([cell for cell in chain(*variation) if cell == "#"])
+
+    # Monster take up 15 hash signs per monster
+    return cells - monsters * 15
+
+
 if __name__ == "__main__":
 
     tiles = parse_input()
 
     # First part
-    tile_variations = {}
-    for identifier, tile in tiles.items():
-        tile_variations[identifier] = generate_variations(tile)
-
+    tile_variations = {name: generate_variations(tile) for name, tile in tiles.items()}
     arrangement = find_arrangement(tile_variations)
     corners = corners_from_arrangement(tile_variations, arrangement)
     assert reduce(mul, corners) == 66020135789767
+
+    # Second part
+    assert water_roughness(arrangement) == 1537

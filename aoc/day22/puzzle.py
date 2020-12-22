@@ -1,22 +1,20 @@
 from collections import deque
-from typing import List, Deque
+from typing import List, Deque, Tuple
 from pathlib import Path
 
 
-def parse_input() -> List[List[int]]:
+def parse_input() -> List[Deque[int]]:
 
     with open(Path(__file__).parent / "input.txt") as f:
         lines = [line.strip() for line in f if line.strip()]
 
     return [
-        list(map(int, lines[1 : lines.index("Player 2:")])),
-        list(map(int, lines[lines.index("Player 2:") + 1 :])),
+        deque(map(int, lines[1 : lines.index("Player 2:")])),
+        deque(map(int, lines[lines.index("Player 2:") + 1 :])),
     ]
 
 
-def combat(decks: List[List[int]]) -> int:
-
-    deck_1, deck_2 = (deque(deck) for deck in decks)
+def combat(deck_1: Deque[int], deck_2: Deque[int]) -> int:
 
     while deck_1 and deck_2:
 
@@ -24,16 +22,19 @@ def combat(decks: List[List[int]]) -> int:
         second = deck_2.popleft()
 
         if first > second:
-            deck_1.append(first)
-            deck_1.append(second)
+            deck_1.extend([first, second])
         else:
-            deck_2.append(second)
-            deck_2.append(first)
+            deck_2.extend([second, first])
 
-    return sum(n * card for n, card in enumerate(reversed(deck_1 or deck_2), start=1))
+    return deck_score(deck_1 or deck_2)
 
 
-def recursive_combat(deck_1: Deque[int], deck_2: Deque[int], game: int = 1):
+def deck_score(deck: Deque[int]) -> int:
+
+    return sum(n * card for n, card in enumerate(reversed(deck), start=1))
+
+
+def recursive_combat(deck_1: Deque[int], deck_2: Deque[int]) -> Tuple[int, int]:
 
     seen_decks = set()
 
@@ -41,47 +42,34 @@ def recursive_combat(deck_1: Deque[int], deck_2: Deque[int], game: int = 1):
 
         state = f"{deck_1}-{deck_2}"
         if state in seen_decks:
-            if game == 1:
-                return deck_1
-            else:
-                return True
+            return deck_score(deck_1), 0
         seen_decks.add(state)
 
         first = deck_1.popleft()
         second = deck_2.popleft()
 
-        player_won = False
         if len(deck_1) >= first and len(deck_2) >= second:
-            player_won = recursive_combat(
-                deque(list(deck_1)[:first]), deque(list(deck_2)[:second]), game + 1
+            deck_scores = recursive_combat(
+                deque(list(deck_1)[:first]), deque(list(deck_2)[:second])
             )
-            if player_won:
-                deck_1.extend([first, second])
-            else:
-                deck_2.extend([second, first])
-        elif first > second:
+            player_wins = deck_scores[0] > deck_scores[1]
+        else:
+            player_wins = first > second
+
+        if player_wins:
             deck_1.extend([first, second])
         else:
             deck_2.extend([second, first])
 
-    if game == 1:
-        return deck_1 or deck_2
-
-    if deck_1:
-        return True
-    else:
-        return False
+    return deck_score(deck_1), deck_score(deck_2)
 
 
 if __name__ == "__main__":
 
-    decks = parse_input()
+    deck_1, deck_2 = parse_input()
 
     # First part
-    assert combat(decks) == 30138
+    assert combat(deck_1.copy(), deck_2.copy()) == 30138
 
     # Second part
-    winning_deck = recursive_combat(deque(decks[0]), deque(decks[1]))
-    assert (
-        sum(n * card for n, card in enumerate(reversed(winning_deck), start=1)) == 31587
-    )
+    assert max(recursive_combat(deck_1.copy(), deck_2.copy())) == 31587

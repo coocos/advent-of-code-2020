@@ -8,79 +8,63 @@ def parse_input() -> List[int]:
         return list(map(int, list(f.read().strip())))
 
 
-class Cup:
-    def __init__(self, label: int) -> None:
-        self.label = label
-        self.next: Optional[Cup] = None
+class Ring:
+    def __init__(self, cups: List[int]) -> None:
 
-    def pop(self) -> Cup:
-        popped = self.next
-        if not popped:
-            raise RuntimeError("Linked list is not circular")
-        self.next = popped.next
-        popped.next = None
-        return popped
+        self.cups = {}
+        for i in range(len(cups) - 1):
+            self.cups[cups[i]] = cups[i + 1]
+        self.cups[cups[i + 1]] = cups[0]
 
-    def insert(self, cup: Cup) -> None:
-        temp = self.next
-        self.next = cup
-        cup.next = temp
+    def pop(self, cup: int) -> int:
 
+        next_cup = self.cups[cup]
+        self.cups[cup] = self.cups[next_cup]
+        del self.cups[next_cup]
+        return next_cup
 
-def create_circular_list(labels: List[int]) -> Cup:
-    head = Cup(labels[0])
-    current = head
-    for label in labels[1:]:
-        current.next = Cup(label)
-        current = current.next
-    current.next = head
-    return head
+    def insert(self, cup: int, new_cup: int) -> None:
+
+        old_next = self.cups[cup]
+        self.cups[cup] = new_cup
+        self.cups[new_cup] = old_next
+
+    def __getitem__(self, cup: int) -> int:
+        return self.cups[cup]
 
 
-def create_label_map(cup: Cup) -> Dict[int, Cup]:
-    labels = {}
-    head = cup
-    while head:
-        if head.label in labels:
-            break
-        labels[head.label] = head
-        head = head.next
-    return labels
+def play(cup_list: List[int], moves: int = 100) -> List[int]:
 
-
-def play(cup_list: List[int], moves: int = 0) -> List[int]:
-
-    cup = create_circular_list(cup_list)
-    cups = create_label_map(cup)
-    largest = max(cups)
+    largest = max(cup_list)
+    ring = Ring(cup_list)
 
     move = 1
-    current = cup
+    current = cup_list[0]
 
     while move <= moves:
 
-        pick_up = [current.pop(), current.pop(), current.pop()]
+        pick_up = [ring.pop(current) for _ in range(3)]
 
-        destination = current.label - 1
+        destination = current - 1
         if destination == 0:
             destination = largest
-        while destination in map(lambda cup: cup.label, pick_up):
+        while destination in pick_up:
             destination -= 1
             if destination <= 0:
                 destination = largest
 
         while pick_up:
-            cups[destination].insert(pick_up.pop())
+            ring.insert(destination, pick_up.pop())
 
-        current = current.next
+        current = ring[current]
         move += 1
 
-    labels_after_one = []
-    current = cups[1].next
-    for _ in range(8):
-        labels_after_one.append(current.label)
-        current = current.next
-    return labels_after_one
+    clockwise_cups: List[int] = []
+    current = ring[1]
+    while len(clockwise_cups) < 8:
+        clockwise_cups.append(current)
+        current = ring[current]
+    return clockwise_cups
 
 
 if __name__ == "__main__":
@@ -91,6 +75,5 @@ if __name__ == "__main__":
     assert "".join(map(str, play(cups, 100))) == "59374826"
 
     # Second part
-    more_cups = cups + [cup for cup in range(10, 1_000_000 + 1)]
-    results = play(more_cups, 10_000_000)
-    assert results[0] * results[1] == 66878091588
+    clockwise_cups = play(cups + list(range(10, 1_000_000 + 1)), 10_000_000)
+    assert clockwise_cups[0] * clockwise_cups[1] == 66878091588

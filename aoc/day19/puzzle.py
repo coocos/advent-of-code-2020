@@ -1,6 +1,5 @@
 import re
 import collections
-from pprint import pprint
 from typing import Tuple, Dict, List
 from pathlib import Path
 
@@ -22,7 +21,7 @@ def parse_input() -> Tuple[Dict, List]:
     return rules, messages
 
 
-def rule_to_regex(rule, rules):
+def rule_to_regex(rule: List[str], rules: Dict[str, List[str]]) -> str:
 
     parts = []
     for token in rule:
@@ -30,12 +29,12 @@ def rule_to_regex(rule, rules):
             return token
         elif token == "|":
             parts.append(token)
-            continue
-        parts.append(rule_to_regex(rules[token], rules))
+        else:
+            parts.append(rule_to_regex(rules[token], rules))
     return f"(?:{''.join(parts)})"
 
 
-def matches_zero_rule(rules, messages):
+def matches_zero_rule(rules, messages) -> int:
 
     regexes = {}
     for name, rule in rules.items():
@@ -52,4 +51,16 @@ if __name__ == "__main__":
 
     rules, messages = parse_input()
 
+    # First part
     assert matches_zero_rule(rules, messages) == 198
+
+    # Second part
+    repetition_limit = 10
+    rules["8"] = ["42"]
+    for multiplier in range(2, repetition_limit):
+        rules["8"] += ["|"] + ["42"] * multiplier
+
+    rules["11"] = ["42", "31"]
+    for multiplier in range(2, repetition_limit):
+        rules["11"] += ["|"] + ["42"] * multiplier + ["31"] * multiplier
+    assert matches_zero_rule(rules, messages) == 372

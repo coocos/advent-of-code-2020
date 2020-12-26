@@ -13,8 +13,7 @@ def play_until(values: List[int], n: int) -> int:
 
     spoken = collections.defaultdict(list)
 
-    for i, value in enumerate(values):
-        turn = i + 1
+    for turn, value in enumerate(values, start=1):
         spoken[value].append(turn)
     turn = len(values) + 1
     prev = value

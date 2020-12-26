@@ -23,6 +23,15 @@ def seat_id(boarding_pass: str) -> int:
     column = boarding_pass[7:]
     return partition(row, 0, 127) * 8 + partition(column, 0, 7)
 
+def missing_seat(seats: List[int]) -> int:
+
+    missing_seat = -1
+    known_seats = set(seats)
+    for seat in range(min(seats), max(seats)):
+        if seat not in known_seats:
+            missing_seat = seat
+            break
+    return missing_seat
 
 if __name__ == "__main__":
 
@@ -33,10 +42,4 @@ if __name__ == "__main__":
     assert max(seats) == 955
 
     # Second part
-    missing_seat = -1
-    known_seats = set(seats)
-    for seat in range(min(seats), max(seats)):
-        if seat not in known_seats:
-            missing_seat = seat
-            break
-    assert missing_seat == 569
+    assert missing_seat(seats) == 569

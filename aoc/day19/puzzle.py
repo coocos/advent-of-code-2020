@@ -34,7 +34,7 @@ def rule_to_regex(rule: List[str], rules: Dict[str, List[str]]) -> str:
     return f"(?:{''.join(parts)})"
 
 
-def matches_zero_rule(rules, messages) -> int:
+def matches_zero_rule(rules: Dict[str, List[str]], messages: List[str]) -> int:
 
     regexes = {}
     for name, rule in rules.items():

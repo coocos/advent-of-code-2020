@@ -4,7 +4,7 @@ My Python solutions to the 2020 edition of the [annual programming puzzle calend
 
 ## How to run the solutions
 
-To run a solution for a given day:
+All the solutions are standalone Python scripts without any external dependencies. So for example to run a solution for day 24:
 
 ```bash
 python aoc/day24/puzzle.py
